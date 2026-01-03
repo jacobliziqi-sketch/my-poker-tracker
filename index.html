@@ -3,106 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokerLog - 专业手牌记录</title>
+    <title>PokerFlow Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .poker-card { background: linear-gradient(145deg, #1e1e1e, #252525); border: 1px solid #333; }
-        .btn-primary { background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); }
+        body { background-color: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .card-red { color: #ff5555; font-weight: bold; }
+        .card-black { color: #ffffff; font-weight: bold; }
     </style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="p-4 pb-24">
+    <div class="max-w-md mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-black text-blue-400">POKERFLOW <span class="text-[10px] text-slate-500 uppercase">Pro</span></h1>
+            <div class="flex gap-2">
+                <button onclick="clearAllData()" class="p-2 text-slate-500 hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                <button onclick="toggleVillainModal()" class="w-10 h-10 rounded-full glass flex items-center justify-center text-blue-400"><i data-lucide="users"></i></button>
+            </div>
+        </div>
 
-    <nav class="p-4 border-b border-gray-800 flex justify-between items-center bg-black/50 sticky top-0 backdrop-blur-md z-10">
-        <h1 class="text-xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-            POKERLOG <span class="text-xs font-light text-gray-500">v1.0</span>
-        </h1>
-        <div class="text-sm font-medium px-3 py-1 bg-gray-800 rounded-full text-emerald-400">盈利: +$0</div>
-    </nav>
-
-    <div class="max-w-md mx-auto px-4 mt-6">
-        
-        <div class="poker-card rounded-3xl p-6 shadow-2xl mb-6">
-            <h2 class="text-gray-400 text-xs uppercase tracking-widest mb-4 font-bold">快速录入新局</h2>
-            
+        <div class="glass rounded-3xl p-6 mb-8 shadow-2xl border-t-2 border-blue-500/30">
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1 ml-1">起手牌</label>
-                    <input id="hand" type="text" placeholder="例如: AhKd" 
-                        class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 focus:outline-none focus:border-blue-500 text-white font-mono">
+                    <label class="text-[10px] text-slate-500 font-bold ml-1 uppercase">My Hand</label>
+                    <input id="hand" oninput="previewHand()" type="text" placeholder="AsKd" class="w-full bg-slate-900/50 border-b border-slate-700 p-2 text-xl font-mono outline-none focus:border-blue-500 transition-all text-white">
                 </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1 ml-1">位置</label>
-                    <select id="pos" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 focus:outline-none focus:border-blue-500 text-white">
-                        <option>BTN</option><option>SB</option><option>BB</option><option>UTG</option><option>HJ</option><option>CO</option>
-                    </select>
-                </div>
+                <div id="handPreview" class="flex items-end justify-center text-3xl pb-1"></div>
             </div>
 
-            <div class="mb-6">
-                <label class="block text-xs text-gray-500 mb-1 ml-1">盈亏 (BB 或 金额)</label>
-                <input id="result" type="number" placeholder="0.00" 
-                    class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-2xl font-bold focus:outline-none focus:border-emerald-500 text-white">
+            <div class="mb-4">
+                <label class="text-[10px] text-slate-500 font-bold ml-1 uppercase">Villain</label>
+                <select id="villainSelect" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-sm outline-none text-white">
+                    <option value="Unknown">Unknown Player</option>
+                </select>
             </div>
 
-            <button onclick="saveHand()" class="btn-primary w-full py-4 rounded-2xl text-black font-bold text-lg shadow-lg active:scale-95 transition-transform">
-                保存此手牌
+            <div class="grid grid-cols-3 gap-2 mb-6 text-white">
+                <input id="flop" placeholder="Flop" class="bg-slate-900/50 p-2 rounded-lg text-xs border border-slate-700 outline-none">
+                <input id="turn" placeholder="Turn" class="bg-slate-900/50 p-2 rounded-lg text-xs border border-slate-700 outline-none">
+                <input id="river" placeholder="River" class="bg-slate-900/50 p-2 rounded-lg text-xs border border-slate-700 outline-none">
+            </div>
+
+            <button onclick="saveHand()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 py-4 rounded-2xl font-black text-xs tracking-widest transition-all shadow-lg shadow-blue-900/20 text-white">
+                RECORD SESSION
             </button>
         </div>
 
-        <div>
-            <div class="flex justify-between items-center mb-4 px-2">
-                <h3 class="font-bold text-gray-200">最近手牌</h3>
-                <span class="text-xs text-gray-500">查看全部</span>
+        <div id="history" class="space-y-4"></div>
+    </div>
+
+    <div id="villainModal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center p-6 z-50">
+        <div class="bg-slate-800 w-full rounded-3xl p-6 border border-slate-700">
+            <h3 class="font-bold mb-4 text-white">Add Opponent</h3>
+            <input id="vName" type="text" placeholder="Name" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none text-white">
+            <div class="flex gap-2 mb-6">
+                <button onclick="createVillain('FISH')" class="flex-1 bg-yellow-500/20 text-yellow-500 py-3 rounded-xl text-xs font-bold">FISH</button>
+                <button onclick="createVillain('REG')" class="flex-1 bg-blue-500/20 text-blue-500 py-3 rounded-xl text-xs font-bold">REG</button>
             </div>
-            
-            <div id="historyList" class="space-y-3">
-                </div>
+            <button onclick="toggleVillainModal()" class="w-full text-slate-500 text-xs py-2">Cancel</button>
         </div>
     </div>
 
     <script>
-        function saveHand() {
-            const handInput = document.getElementById('hand');
-            const pos = document.getElementById('pos').value;
-            const result = document.getElementById('result').value;
-            
-            if(!handInput.value) {
-                alert('请输入起手牌！');
-                return;
-            }
+        // 初始化数据
+        let villains = JSON.parse(localStorage.getItem('poker_villains') || '[]');
+        let handHistory = JSON.parse(localStorage.getItem('poker_hands') || '[]');
 
-            // 简单的花色美化逻辑
-            let displayHand = handInput.value
-                .replace(/h/g, '<span class="text-red-500">♥</span>')
-                .replace(/d/g, '<span class="text-blue-400">♦</span>')
-                .replace(/c/g, '<span class="text-green-500">♣</span>')
-                .replace(/s/g, '<span class="text-gray-300">♠</span>');
-
-            const item = document.createElement('div');
-            item.className = "poker-card p-4 rounded-2xl flex justify-between items-center animate-fadeIn";
-            item.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <div class="bg-gray-800 h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold text-gray-400">${pos}</div>
-                    <div class="text-xl font-mono font-bold tracking-tighter">${displayHand}</div>
-                </div>
-                <div class="text-right">
-                    <div class="font-bold ${result >= 0 ? 'text-emerald-400' : 'text-red-400'}">${result >= 0 ? '+' : ''}${result}</div>
-                    <div class="text-[10px] text-gray-600">${new Date().toLocaleTimeString()}</div>
-                </div>
-            `;
-            
-            document.getElementById('historyList').prepend(item);
-            
-            // 清空并反馈
-            handInput.value = '';
-            document.getElementById('result').value = '';
+        function formatPoker(str) {
+            if(!str) return '';
+            return str.toLowerCase()
+                      .replace(/s/g, '<span class="card-black">♠</span>')
+                      .replace(/h/g, '<span class="card-red">♥</span>')
+                      .replace(/d/g, '<span class="card-red">♦</span>')
+                      .replace(/c/g, '<span class="card-black">♣</span>')
+                      .toUpperCase();
         }
-    </script>
 
-    <style>
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
-    </style>
+        function previewHand() {
+            document.getElementById('handPreview').innerHTML = formatPoker(document.getElementById('hand').value);
+        }
+
+        function toggleVillainModal() { document.getElementById('villainModal').classList.toggle('hidden'); }
+
+        function createVillain(type) {
+            const name = document.getElementById('vName').value;
+            if(!name) return;
+            villains.push({name, type});
+            localStorage.setItem('poker_villains', JSON.stringify(villains));
+            renderVillains();
+            toggleVillainModal();
+            document.getElementById('vName').value = '';
+        }
+
+        function renderVillains() {
+            const select = document.getElementById('villainSelect');
+            select.innerHTML = '<option value="Unknown">Unknown Player</option>' + 
+                villains.map(v => `<option value="${v.name}">${v.name} (${v.type})</option>`).join('');
+        }
+
+        function saveHand() {
+            const newHand = {
+                hand: document.getElementById('hand').value,
+                v: document.getElementById('villainSelect').value,
+                board: `${document.getElementById('flop').value} ${document.getElementById('turn').value} ${document.getElementById('river').value}`,
+                time: new Date().toLocaleString()
+            };
+            if(!newHand.hand) return alert('Enter hand first');
+            
+            handHistory.unshift(newHand);
+            localStorage.setItem('poker_hands', JSON.stringify(handHistory));
+            renderHistory();
+            
+            // 清空输入
+            ['hand','flop','turn','river'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('handPreview').innerHTML = '';
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history');
+            container.innerHTML = handHistory.map(h => `
+                <div class="glass p-5 rounded-3xl animate-in slide-in-from-top-2 duration-300">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="text-2xl font-mono">${formatPoker(h.hand)}</div>
+                        <div class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full text-blue-400">VS ${h.v}</div>
+                    </div>
+                    <div class="text-xs text-slate-400 font-mono flex gap-2">
+                        <span class="text-slate-600 font-bold uppercase tracking-tighter">Board</span>
+                        ${formatPoker(h.board)}
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function clearAllData() {
+            if(confirm('Delete all history?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // 启动执行
+        renderVillains();
+        renderHistory();
+        lucide.createIcons();
+    </script>
 </body>
 </html>
