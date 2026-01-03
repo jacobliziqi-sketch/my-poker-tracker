@@ -3,169 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokerFlow HUD Pro - 盈利监控版</title>
+    <title>PokerFlow Pro - 多场次管理版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #070b14; color: #e2e8f0; font-family: -apple-system, sans-serif; overflow: hidden; }
-        .poker-table { background: radial-gradient(circle, #1a4d2e 0%, #0a2615 100%); border: 6px solid #2d1f1f; border-radius: 160px; position: relative; height: 300px; width: 100%; margin: 15px 0; }
+        body { background-color: #070b14; color: #e2e8f0; font-family: sans-serif; overflow-x: hidden; }
+        .poker-table { background: radial-gradient(circle, #1a4d2e 0%, #0a2615 100%); border: 6px solid #2d1f1f; border-radius: 160px; position: relative; height: 280px; width: 100%; margin: 10px 0; }
         .player-slot { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 75px; }
-        .avatar { @apply w-12 h-12 rounded-full border-2 border-slate-600 bg-slate-800 flex flex-col items-center justify-center text-[10px] font-bold transition-all active:scale-95; }
-        .active-seat { border-color: #fbbf24; box-shadow: 0 0 15px #fbbf24; }
-        .hud-box { font-size: 8px; @apply mt-1 bg-black/60 rounded px-1 py-0.5 text-emerald-400 font-mono shadow-sm; }
-        .profit-tag { font-size: 9px; @apply font-bold mt-0.5; }
-        .modal-bg { @apply fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-6 backdrop-blur-md; }
+        .avatar { @apply w-11 h-11 rounded-full border-2 border-slate-600 bg-slate-800 flex flex-col items-center justify-center text-[9px] font-bold transition-all; }
+        .active-seat { border-color: #fbbf24; box-shadow: 0 0 12px #fbbf24; }
+        .hud-box { font-size: 8px; @apply mt-1 bg-black/60 rounded px-1 text-emerald-400 font-mono; }
+        .modal-full { @apply fixed inset-0 bg-slate-950 z-[100] p-6 overflow-y-auto hidden; }
+        .session-card { @apply bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-3 flex justify-between items-center; }
     </style>
 </head>
-<body class="p-4">
-    <div class="flex justify-between items-center mb-2">
-        <div>
-            <span id="bbDisplay" class="text-[10px] bg-blue-600 px-2 py-0.5 rounded font-bold uppercase italic">1/2 BB</span>
-            <span class="text-[10px] text-slate-500 ml-2">HAND #<span id="handNum">1</span></span>
-        </div>
-        <button onclick="showReport()" class="text-xs text-emerald-400 font-bold flex items-center gap-1">
-            <i data-lucide="bar-chart-2" class="w-3 h-3"></i> 结束并导出报表
+<body class="p-4 pb-10">
+    <div class="flex justify-between items-center mb-4">
+        <button onclick="showSessionManager()" class="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-xl text-xs">
+            <i data-lucide="layers" class="w-4 h-4"></i> 切换场次
         </button>
+        <div class="text-right">
+            <div id="sessionTitle" class="text-xs font-bold text-blue-400">未开始场次</div>
+            <div id="bbInfo" class="text-[9px] text-slate-500">1/2 BB</div>
+        </div>
     </div>
 
     <div class="poker-table shadow-2xl">
         <div id="tablePlayers"></div>
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-            <div id="potValue" class="text-3xl font-black text-yellow-500 font-mono">0</div>
-            <div class="text-[8px] text-slate-400 uppercase tracking-widest">Live Session</div>
+            <div id="potValue" class="text-2xl font-black text-yellow-500 font-mono">HAND #<span id="handNum">0</span></div>
         </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-3 mb-4">
-        <button onclick="recordAction('Fold')" class="py-4 rounded-xl bg-slate-700 font-black text-xs">FOLD</button>
-        <button onclick="recordAction('Call')" class="py-4 rounded-xl bg-blue-600 font-black text-xs">CALL</button>
-        <button onclick="recordAction('Raise')" class="py-4 rounded-xl bg-emerald-600 font-black text-xs text-black">RAISE</button>
+    <div class="grid grid-cols-3 gap-2 mb-4">
+        <button onclick="recordAction('Fold')" class="py-4 rounded-xl bg-slate-800 font-bold text-xs">FOLD</button>
+        <button onclick="recordAction('Call')" class="py-4 rounded-xl bg-blue-700 font-bold text-xs">CALL</button>
+        <button onclick="recordAction('Raise')" class="py-4 rounded-xl bg-emerald-600 font-bold text-xs text-black">RAISE</button>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-            <label class="text-[8px] text-slate-500 uppercase font-bold">本局输赢 (金额)</label>
-            <div class="flex gap-2 mt-1">
-                <input id="roundProfit" type="number" placeholder="+/-" class="w-full bg-transparent text-xl font-mono outline-none text-white">
-                <button onclick="nextHand()" class="bg-indigo-600 px-4 rounded-lg font-bold text-[10px]">SAVE</button>
+    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-[10px] text-slate-500 font-bold">本局输赢结算</span>
+            <span id="activeNameDisplay" class="text-[10px] text-yellow-500 italic">选中玩家记录盈亏</span>
+        </div>
+        <div class="flex gap-3">
+            <input id="roundProfit" type="number" placeholder="金额" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xl font-mono outline-none">
+            <button onclick="saveRound()" class="bg-indigo-600 px-6 rounded-lg font-black text-xs">SAVE</button>
+        </div>
+    </div>
+
+    <div id="sessionModal" class="modal-full">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-black">场次管理</h2>
+            <button onclick="closeSessionManager()"><i data-lucide="x"></i></button>
+        </div>
+        
+        <div class="mb-8 bg-blue-900/20 p-6 rounded-3xl border border-blue-500/30">
+            <h3 class="text-sm font-bold mb-4">开启新场次</h3>
+            <div class="space-y-3">
+                <input id="newSessionName" type="text" placeholder="场次名称 (如: 1月3日家局)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-sm outline-none">
+                <input id="newSessionBB" type="number" placeholder="大盲注金额 (如: 2)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-sm outline-none">
+                <button onclick="createNewSession()" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-sm">开始记录</button>
             </div>
         </div>
-        <div class="flex flex-col justify-between">
-            <button onclick="toggleSettings()" class="bg-slate-800 p-2 rounded-lg text-[10px] text-center">⚙️ 盲注设置</button>
-            <button onclick="if(confirm('重置所有数据？')) {localStorage.clear(); location.reload();}" class="text-slate-600 text-[8px] text-right">RESET DATA</button>
-        </div>
-    </div>
 
-    <div id="reportModal" class="modal-bg">
-        <div class="bg-slate-900 w-full rounded-3xl p-6 border border-slate-700 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <h3 class="text-xl font-black mb-4 text-emerald-400">SESSION REPORT</h3>
-            <div id="reportList" class="space-y-4 mb-6 text-sm"></div>
-            <button onclick="document.getElementById('reportModal').classList.add('hidden')" class="w-full bg-slate-700 py-3 rounded-xl font-bold">返回牌桌</button>
-        </div>
+        <h3 class="text-xs font-bold text-slate-500 mb-4 uppercase">历史场次</h3>
+        <div id="sessionList"></div>
     </div>
 
     <script>
-        let config = JSON.parse(localStorage.getItem('poker_config')) || { bb: 2 };
-        let seats = JSON.parse(localStorage.getItem('poker_seats')) || {
-            'SB': {name: 'P1', profit: 0, vpip_count: 0, pfr_count: 0, total_hands: 0},
-            'BB': {name: 'P2', profit: 0, vpip_count: 0, pfr_count: 0, total_hands: 0},
-            'UTG': {name: 'P3', profit: 0, vpip_count: 0, pfr_count: 0, total_hands: 0},
-            'HJ': {name: 'P4', profit: 0, vpip_count: 0, pfr_count: 0, total_hands: 0},
-            'CO': {name: 'P5', profit: 0, vpip_count: 0, pfr_count: 0, total_hands: 0},
-            'BTN': {name: 'P6', profit: 0, vpip_count: 0, pfr_count: 0, total_hands: 0}
-        };
-
+        let sessions = JSON.parse(localStorage.getItem('poker_sessions')) || [];
+        let currentSessionIdx = localStorage.getItem('current_session_idx') !== null ? parseInt(localStorage.getItem('current_session_idx')) : -1;
+        
         const layout = {
             'SB': {x: '50%', y: '88%'}, 'BB': {x: '20%', y: '80%'},
             'UTG': {x: '12%', y: '50%'}, 'HJ': {x: '30%', y: '18%'},
             'CO': {x: '70%', y: '18%'}, 'BTN': {x: '88%', y: '50%'}
         };
-
         let activeSeat = 'UTG';
-        let handCount = parseInt(localStorage.getItem('hand_count') || '1');
 
         function render() {
+            if (currentSessionIdx === -1) {
+                showSessionManager();
+                return;
+            }
+            const s = sessions[currentSessionIdx];
+            document.getElementById('sessionTitle').innerText = s.name;
+            document.getElementById('bbInfo').innerText = `1/${s.bb} BB`;
+            document.getElementById('handNum').innerText = s.handCount;
+
             const container = document.getElementById('tablePlayers');
             container.innerHTML = '';
-            for (let id in seats) {
-                const p = seats[id];
-                const vpip = p.total_hands > 0 ? Math.round((p.vpip_count / p.total_hands) * 100) : 0;
-                const pfr = p.total_hands > 0 ? Math.round((p.pfr_count / p.total_hands) * 100) : 0;
-                const bbProfit = (p.profit / config.bb).toFixed(1);
-
+            for (let id in s.seats) {
+                const p = s.seats[id];
+                const vpip = p.hands > 0 ? Math.round((p.vpip / p.hands) * 100) : 0;
+                const pfr = p.hands > 0 ? Math.round((p.pfr / p.hands) * 100) : 0;
+                
                 container.innerHTML += `
-                    <div class="player-slot" style="left:${layout[id].x}; top:${layout[id].y}" onclick="activeSeat='${id}';render();">
+                    <div class="player-slot" style="left:${layout[id].x}; top:${layout[id].y}" onclick="selectSeat('${id}')">
                         <div class="text-[8px] font-bold ${activeSeat === id ? 'text-yellow-400' : 'text-slate-600'}">${id}</div>
                         <div class="avatar ${activeSeat === id ? 'active-seat' : ''}">
-                            <span class="text-white">${p.name}</span>
-                            <span class="profit-tag ${p.profit >=0 ? 'text-emerald-400' : 'text-red-500'}">${bbProfit} BB</span>
+                            <span>${p.name}</span>
+                            <span class="${p.profit >= 0 ? 'text-emerald-400' : 'text-red-500'}">${(p.profit/s.bb).toFixed(1)}</span>
                         </div>
                         <div class="hud-box">V:${vpip} P:${pfr}</div>
                     </div>
                 `;
             }
-            document.getElementById('handNum').innerText = handCount;
-            document.getElementById('bbDisplay').innerText = `1/${config.bb} BB`;
+            document.getElementById('activeNameDisplay').innerText = `记录 ${s.seats[activeSeat].name} 的盈亏`;
             lucide.createIcons();
         }
 
+        function selectSeat(id) { activeSeat = id; render(); }
+
         function recordAction(type) {
-            const p = seats[activeSeat];
-            p.total_hands++;
-            if(type === 'Call') p.vpip_count++;
-            if(type === 'Raise') { p.vpip_count++; p.pfr_count++; }
+            const s = sessions[currentSessionIdx];
+            const p = s.seats[activeSeat];
+            p.hands++;
+            if(type === 'Call') p.vpip++;
+            if(type === 'Raise') { p.vpip++; p.pfr++; }
             
-            // 自动轮转
             const order = ['SB', 'BB', 'UTG', 'HJ', 'CO', 'BTN'];
             activeSeat = order[(order.indexOf(activeSeat) + 1) % order.length];
-            save();
-            render();
+            save(); render();
         }
 
-        function nextHand() {
-            const profit = parseFloat(document.getElementById('roundProfit').value || 0);
-            seats[activeSeat].profit += profit; // 记录当前亮起位置的盈亏
-            handCount++;
+        function saveRound() {
+            const s = sessions[currentSessionIdx];
+            const val = parseFloat(document.getElementById('roundProfit').value || 0);
+            s.seats[activeSeat].profit += val;
+            s.handCount++;
             document.getElementById('roundProfit').value = '';
+            save(); render();
+        }
+
+        function createNewSession() {
+            const name = document.getElementById('newSessionName').value || `场次 #${sessions.length + 1}`;
+            const bb = parseInt(document.getElementById('newSessionBB').value || 2);
+            const newS = {
+                name, bb, handCount: 0,
+                seats: {
+                    'SB': {name: 'P1', profit: 0, vpip: 0, pfr: 0, hands: 0},
+                    'BB': {name: 'P2', profit: 0, vpip: 0, pfr: 0, hands: 0},
+                    'UTG': {name: 'P3', profit: 0, vpip: 0, pfr: 0, hands: 0},
+                    'HJ': {name: 'P4', profit: 0, vpip: 0, pfr: 0, hands: 0},
+                    'CO': {name: 'P5', profit: 0, vpip: 0, pfr: 0, hands: 0},
+                    'BTN': {name: 'P6', profit: 0, vpip: 0, pfr: 0, hands: 0}
+                }
+            };
+            sessions.unshift(newS);
+            currentSessionIdx = 0;
             save();
+            closeSessionManager();
             render();
         }
 
-        function showReport() {
-            const modal = document.getElementById('reportModal');
-            const list = document.getElementById('reportList');
-            modal.classList.remove('hidden');
-            
-            let html = `<div class="grid grid-cols-4 font-bold text-slate-500 border-b border-slate-700 pb-2 text-[10px]">
-                <span>玩家</span><span>入池VPIP</span><span>激进PFR</span><span>总盈亏</span>
-            </div>`;
-            
-            for(let id in seats) {
-                const p = seats[id];
-                const v = p.total_hands > 0 ? Math.round((p.vpip_count / p.total_hands)*100) : 0;
-                const r = p.total_hands > 0 ? Math.round((p.pfr_count / p.total_hands)*100) : 0;
-                html += `<div class="grid grid-cols-4 py-2 border-b border-slate-800 items-center text-xs">
-                    <span class="font-bold">${p.name}</span>
-                    <span class="${v > 30 ? 'text-yellow-400' : ''}">${v}%</span>
-                    <span>${r}%</span>
-                    <span class="font-mono ${p.profit >=0 ? 'text-emerald-400' : 'text-red-500'}">${p.profit}</span>
-                </div>`;
-            }
-            list.innerHTML = html;
+        function showSessionManager() {
+            document.getElementById('sessionModal').classList.remove('hidden');
+            const list = document.getElementById('sessionList');
+            list.innerHTML = sessions.map((s, i) => `
+                <div class="session-card" onclick="switchSession(${i})">
+                    <div>
+                        <div class="font-bold text-sm">${s.name}</div>
+                        <div class="text-[10px] text-slate-500">${s.handCount} 手牌 · 盲注 1/${s.bb}</div>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-slate-700"></i>
+                </div>
+            `).join('');
+            lucide.createIcons();
         }
 
-        function toggleSettings() {
-            const newBB = prompt("设置大盲金额 (如输入 2 代表 1/2):", config.bb);
-            if(newBB) {
-                config.bb = parseInt(newBB);
-                localStorage.setItem('poker_config', JSON.stringify(config));
-                render();
-            }
+        function switchSession(i) {
+            currentSessionIdx = i;
+            save();
+            closeSessionManager();
+            render();
         }
 
+        function closeSessionManager() { document.getElementById('sessionModal').classList.add('hidden'); }
         function save() {
-            localStorage.setItem('poker_seats', JSON.stringify(seats));
-            localStorage.setItem('hand_count', handCount);
+            localStorage.setItem('poker_sessions', JSON.stringify(sessions));
+            localStorage.setItem('current_session_idx', currentSessionIdx);
         }
 
         render();
