@@ -3,40 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PokerFlow 2.1 - 完整逻辑版</title>
+    <title>PokerFlow 2.2 - 稳定版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --poker-green: #1a4d2e; --poker-dark: #070b14; }
-        body { background-color: var(--poker-dark); color: #f8fafc; font-family: -apple-system, system-ui; touch-action: manipulation; }
-        .table-field { background: radial-gradient(circle at center, #246b41 0%, #0f331d 100%); border: 4px solid #2d1f1f; border-radius: 140px; height: 280px; position: relative; width: 100%; margin: 15px 0; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
-        .seat { position: absolute; transform: translate(-50%, -50%); width: 75px; text-align: center; cursor: pointer; }
+        body { background-color: #070b14; color: #f8fafc; font-family: system-ui; touch-action: manipulation; }
+        .table-field { background: radial-gradient(circle at center, #246b41 0%, #0f331d 100%); border: 4px solid #2d1f1f; border-radius: 140px; height: 280px; position: relative; width: 100%; margin: 15px 0; }
+        .seat { position: absolute; transform: translate(-50%, -50%); width: 75px; text-align: center; }
         .avatar-ring { @apply w-12 h-12 rounded-full border-2 border-slate-700 bg-slate-900 flex items-center justify-center font-bold text-sm relative transition-all; }
         .active-seat .avatar-ring { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.6); transform: scale(1.1); }
-        .btn-tag { @apply absolute -top-1 -right-1 w-5 h-5 bg-white text-black rounded-full text-[10px] flex items-center justify-center font-black border border-gray-400; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .force-tag { @apply absolute -bottom-1 left-1/2 -translate-x-1/2 px-1 bg-red-600 text-white text-[8px] rounded leading-tight font-bold; }
-        .hud-vpip { font-size: 8px; @apply mt-1 px-1 rounded bg-black/40 text-emerald-400 font-mono; }
-        .stack-info { font-size: 10px; @apply font-bold text-yellow-500 mt-0.5; }
-        .action-btn { @apply flex-1 py-5 rounded-2xl font-black text-xs active:opacity-50 transition-all shadow-lg uppercase tracking-widest; }
+        .btn-tag { @apply absolute -top-1 -right-1 w-5 h-5 bg-white text-black rounded-full text-[10px] flex items-center justify-center font-black border border-gray-400; }
+        .force-tag { @apply absolute -bottom-1 left-1/2 -translate-x-1/2 px-1 text-white text-[8px] rounded leading-tight font-bold; }
+        .action-btn { @apply flex-1 py-5 rounded-2xl font-black text-xs active:opacity-50 transition-all shadow-lg uppercase; }
     </style>
 </head>
 <body class="p-4 flex flex-col min-h-screen">
 
-    <header class="flex justify-between items-end px-1 mb-2">
+    <header class="flex justify-between items-end mb-2">
         <div onclick="openSessionMenu()">
-            <h1 id="curSessionName" class="text-lg font-black text-blue-400 leading-tight">载入中...</h1>
-            <p id="curBBInfo" class="text-[9px] text-slate-500 font-bold uppercase">SET BLINDS</p>
+            <h1 id="curSessionName" class="text-lg font-black text-blue-400 leading-tight">点击创建场次</h1>
+            <p id="curBBInfo" class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Session Manager</p>
         </div>
-        <div class="text-right">
-            <span class="text-[10px] text-slate-500 font-bold uppercase block">Current Stage</span>
-            <span id="handCounter" class="text-xs font-mono font-bold text-emerald-500 tracking-tighter">HAND #0</span>
-        </div>
+        <button onclick="localStorage.clear(); location.reload();" class="p-2 text-slate-700 text-[10px] uppercase">Reset All</button>
     </header>
 
     <main class="table-field shadow-2xl">
         <div id="seatsContainer"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <i data-lucide="layers" class="w-12 h-12"></i>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+            <i data-lucide="layers" class="w-16 h-16"></i>
         </div>
     </main>
 
@@ -46,40 +40,153 @@
             <button onclick="handleAction('Call')" class="action-btn bg-blue-600">Call</button>
             <button onclick="handleAction('Raise')" class="action-btn bg-emerald-600 text-black">Raise</button>
         </div>
-        
         <div class="bg-slate-900 rounded-3xl p-4 border border-slate-800 flex items-center gap-3">
             <div class="flex-1">
-                <p class="text-[9px] text-slate-500 font-bold ml-1 mb-1">本局盈亏 (金额)</p>
-                <input id="inputProfit" type="number" placeholder="0.00" class="w-full bg-transparent text-2xl font-mono font-bold outline-none text-white">
+                <p class="text-[9px] text-slate-500 font-bold mb-1">本局盈亏 (金额)</p>
+                <input id="inputProfit" type="number" placeholder="0" class="w-full bg-transparent text-2xl font-mono font-bold outline-none text-white">
             </div>
-            <button onclick="submitRound()" class="h-14 px-8 bg-indigo-600 rounded-2xl font-black text-xs shadow-lg">SAVE</button>
+            <button onclick="submitRound()" class="h-14 px-8 bg-indigo-600 rounded-2xl font-black text-xs">SAVE</button>
         </div>
     </section>
 
     <div id="modalPlayer" class="fixed inset-0 bg-black/95 z-[100] p-6 hidden flex flex-col justify-center">
-        <div class="flex justify-between mb-8">
-            <h2 class="text-2xl font-black text-yellow-500">位置详情</h2>
-            <button onclick="closeModals()"><i data-lucide="x"></i></button>
-        </div>
-        <div class="space-y-6 bg-slate-900 p-6 rounded-3xl border border-slate-800">
-            <div>
-                <label class="text-xs text-slate-500 font-bold mb-2 block uppercase">玩家昵称</label>
-                <input id="inPlayerName" class="w-full bg-slate-950 p-4 rounded-xl text-xl font-bold border border-slate-700 outline-none">
+        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6">
+            <h2 id="editTitle" class="text-xl font-black text-yellow-500 text-center uppercase">Position Detail</h2>
+            <input id="inPlayerName" placeholder="玩家名字" class="w-full bg-slate-950 p-4 rounded-xl text-xl font-bold border border-slate-700 outline-none">
+            <input id="inPlayerStack" type="number" placeholder="后手BB" class="w-full bg-slate-950 p-4 rounded-xl text-xl font-bold border border-slate-700 outline-none text-yellow-500">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="setAsButton()" class="bg-white text-black rounded-xl font-bold py-4 text-xs">设为 BTN</button>
+                <button onclick="savePlayerUpdate()" class="bg-blue-600 text-white rounded-xl font-bold py-4 text-xs">保存修改</button>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-xs text-slate-500 font-bold mb-2 block uppercase">后手深度 (BB)</label>
-                    <input id="inPlayerStack" type="number" class="w-full bg-slate-950 p-4 rounded-xl text-xl font-bold border border-slate-700 outline-none text-yellow-500">
-                </div>
-                <div class="flex flex-col justify-end">
-                    <button onclick="setAsButton()" class="w-full h-[60px] bg-white text-black rounded-xl font-black text-xs">设为 BTN</button>
-                </div>
-            </div>
-            <button onclick="savePlayerUpdate()" class="w-full bg-blue-600 py-4 rounded-2xl font-black mt-4 uppercase tracking-widest text-sm">确认更新</button>
+            <button onclick="closeModals()" class="w-full text-slate-500 text-sm">取消</button>
         </div>
     </div>
 
     <div id="modalSession" class="fixed inset-0 bg-black/95 z-[100] p-6 hidden">
-        <div class="flex justify-between mb-8"><h2 class="text-2xl font-black">场次管理</h2><button onclick="closeModals()"><i data-lucide="x"></i></button></div>
-        <div class="bg-indigo-600/10 border border-indigo-500/30 p-5 rounded-3xl mb-6 space-y-3">
-            <input id="inSessionName" placeholder="场次名称" class="w-full bg-slate-900 p-3 rounded-xl outline-none border border-slate-700">
+        <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black">场次列表</h2><button onclick="closeModals()"><i data-lucide="x"></i></button></div>
+        <div class="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl mb-6 space-y-3">
+            <input id="inSessionName" placeholder="场次名" class="w-full bg-slate-900 p-3 rounded-lg outline-none text-sm">
+            <input id="inSessionBB" type="number" placeholder="大盲" class="w-full bg-slate-900 p-3 rounded-lg outline-none text-sm">
+            <button onclick="createSession()" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-xs uppercase">建立新 Session</button>
+        </div>
+        <div id="sessionHistory" class="space-y-2"></div>
+    </div>
+
+    <script>
+        let db;
+        try {
+            db = JSON.parse(localStorage.getItem('pf_pro_v22')) || { sessions: [], currentIdx: -1 };
+        } catch (e) {
+            db = { sessions: [], currentIdx: -1 };
+        }
+
+        const layout = { 'SB':{x:50,y:88}, 'BB':{x:20,y:80}, 'UTG':{x:12,y:50}, 'HJ':{x:30,y:18}, 'CO':{x:70,y:18}, 'BTN':{x:88,y:50} };
+        let activeSeat = 'UTG';
+        let editingSeatId = '';
+
+        function init() {
+            if(db.currentIdx === -1) { openSessionMenu(); } else { render(); }
+            lucide.createIcons();
+        }
+
+        function render() {
+            if(!db.sessions[db.currentIdx]) return openSessionMenu();
+            const s = db.sessions[db.currentIdx];
+            document.getElementById('curSessionName').innerText = s.name;
+            document.getElementById('curBBInfo').innerText = `1/${s.bb} BB · ${s.btnPos} ON BTN`;
+
+            const container = document.getElementById('seatsContainer');
+            container.innerHTML = '';
+            const order = ['SB','BB','UTG','HJ','CO','BTN'];
+            const btnIdx = order.indexOf(s.btnPos);
+            const sbPos = order[(btnIdx + 1) % 6];
+            const bbPos = order[(btnIdx + 2) % 6];
+
+            for(let id in s.seats) {
+                const p = s.seats[id];
+                const vpip = p.hands > 0 ? Math.round((p.vpip/p.hands)*100) : 0;
+                container.innerHTML += `
+                    <div onclick="activeSeat='${id}';render();" ondblclick="openPlayerModal('${id}')" 
+                         class="seat ${activeSeat === id ? 'active-seat' : ''}" style="left:${layout[id].x}%; top:${layout[id].y}%">
+                        <div class="avatar-ring">
+                            ${p.name[0]}
+                            ${id === s.btnPos ? '<div class="btn-tag">D</div>' : ''}
+                            ${id === sbPos ? '<div class="force-tag bg-blue-600">SB</div>' : ''}
+                            ${id === bbPos ? '<div class="force-tag bg-red-600">BB</div>' : ''}
+                        </div>
+                        <div class="text-[8px] mt-1 text-emerald-400 font-mono">V:${vpip}%</div>
+                        <div class="text-[9px] font-bold text-yellow-500">${p.stack}BB</div>
+                        <div class="text-[8px] text-slate-600 font-bold uppercase truncate">${p.name}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function openPlayerModal(id) {
+            editingSeatId = id;
+            const p = db.sessions[db.currentIdx].seats[id];
+            document.getElementById('editTitle').innerText = id + " Position";
+            document.getElementById('inPlayerName').value = p.name;
+            document.getElementById('inPlayerStack').value = p.stack;
+            document.getElementById('modalPlayer').classList.remove('hidden');
+        }
+
+        function setAsButton() {
+            db.sessions[db.currentIdx].btnPos = editingSeatId;
+            save(); render(); closeModals();
+        }
+
+        function savePlayerUpdate() {
+            const p = db.sessions[db.currentIdx].seats[editingSeatId];
+            p.name = document.getElementById('inPlayerName').value || editingSeatId;
+            p.stack = parseInt(document.getElementById('inPlayerStack').value || 100);
+            save(); render(); closeModals();
+        }
+
+        function handleAction(type) {
+            const s = db.sessions[db.currentIdx];
+            if(type !== 'Fold') s.seats[activeSeat].vpip++;
+            s.seats[activeSeat].hands++;
+            const order = ['SB','BB','UTG','HJ','CO','BTN'];
+            activeSeat = order[(order.indexOf(activeSeat)+1)%6];
+            save(); render();
+        }
+
+        function submitRound() {
+            const s = db.sessions[db.currentIdx];
+            s.seats[activeSeat].profit += parseFloat(document.getElementById('inputProfit').value || 0);
+            const order = ['SB','BB','UTG','HJ','CO','BTN'];
+            s.btnPos = order[(order.indexOf(s.btnPos)+1)%6];
+            document.getElementById('inputProfit').value = '';
+            save(); render();
+        }
+
+        function createSession() {
+            const name = document.getElementById('inSessionName').value || 'New Session';
+            const bb = parseInt(document.getElementById('inSessionBB').value || 2);
+            const seats = {};
+            ['SB','BB','UTG','HJ','CO','BTN'].forEach(id => {
+                seats[id] = {name:id, stack:100, hands:0, vpip:0, profit:0};
+            });
+            db.sessions.unshift({ name, bb, btnPos: 'BTN', seats });
+            db.currentIdx = 0;
+            save(); closeModals(); render();
+        }
+
+        function openSessionMenu() {
+            document.getElementById('modalSession').classList.remove('hidden');
+            document.getElementById('sessionHistory').innerHTML = db.sessions.map((s,i) => `
+                <div onclick="db.currentIdx=${i};save();closeModals();render();" class="p-4 bg-slate-900 rounded-xl flex justify-between border border-slate-800">
+                    <span class="font-bold">${s.name}</span><span class="text-xs text-slate-500">${s.bb} BB</span>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function closeModals() { document.querySelectorAll('[id^=modal]').forEach(m => m.classList.add('hidden')); }
+        function save() { localStorage.setItem('pf_pro_v22', JSON.stringify(db)); }
+        
+        init();
+    </script>
+</body>
+</html>
