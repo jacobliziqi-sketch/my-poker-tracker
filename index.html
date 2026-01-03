@@ -3,105 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokerFlow Pro - 实战高频版</title>
+    <title>PokerFlow HUD - 实战专家版</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #070b14; color: #e2e8f0; font-family: sans-serif; overflow-x: hidden; }
-        .poker-table { background: radial-gradient(circle, #1a4d2e 0%, #0a2615 100%); border: 8px solid #3d2b1f; border-radius: 200px; position: relative; height: 300px; width: 100%; margin: 20px 0; }
-        .player-slot { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 60px; }
-        .card-btn { @apply w-8 h-10 flex items-center justify-center rounded text-sm font-bold shadow-sm active:scale-90 transition-all; border: 1px solid rgba(255,255,255,0.1); }
-        .suit-s { background: #fff; color: #000; } .suit-h { background: #fff; color: #ff4444; }
-        .suit-d { background: #fff; color: #3b82f6; } .suit-c { background: #fff; color: #22c55e; }
-        .hud-tag { font-size: 8px; @apply px-1 rounded bg-black/50 text-emerald-400 font-mono; }
+        body { background-color: #070b14; color: #e2e8f0; font-family: sans-serif; overflow: hidden; }
+        .poker-table { background: radial-gradient(circle, #1a4d2e 0%, #0a2615 100%); border: 6px solid #2d1f1f; border-radius: 160px; position: relative; height: 320px; width: 100%; margin: 20px 0; }
+        .player-slot { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 70px; cursor: pointer; }
+        .avatar-circle { @apply w-12 h-12 rounded-full border-2 border-slate-600 bg-slate-800 flex items-center justify-center text-xs font-bold transition-all active:scale-90; }
+        .active-seat { border-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+        .hud-box { font-size: 9px; @apply mt-1 bg-black/60 rounded px-1 py-0.5 text-emerald-400 font-mono leading-tight shadow-sm; }
+        .btn-action { @apply flex-1 py-4 rounded-xl font-black text-sm active:scale-95 transition-all; }
     </style>
 </head>
-<body class="p-2">
-    <div class="poker-table shadow-2xl">
+<body class="p-4">
+    <div class="poker-table shadow-2xl" id="mainTable">
         <div id="tablePlayers"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-            <div class="text-[10px] text-gray-400 uppercase tracking-widest">Total Pot</div>
-            <div id="potDisplay" class="text-2xl font-black text-yellow-400 font-mono">0</div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+            <div id="currentStage" class="text-[10px] text-blue-400 font-bold uppercase tracking-widest italic">Pre-Flop</div>
+            <div id="potValue" class="text-3xl font-black text-yellow-500 font-mono">0</div>
         </div>
     </div>
 
-    <div id="pokerKeyboard" class="bg-slate-900 rounded-t-3xl p-3 fixed bottom-0 left-0 right-0 shadow-2xl border-t border-slate-700 hidden z-50">
-        <div class="flex justify-between mb-2 px-2">
-            <span class="text-xs font-bold">选择手牌</span>
-            <button onclick="closeKeyboard()" class="text-blue-400 text-xs">确定</button>
-        </div>
-        <div class="grid grid-cols-13 gap-1 overflow-x-auto pb-2" id="cardsGrid">
+    <div id="actionPanel" class="grid grid-cols-3 gap-3 mb-6">
+        <button onclick="recordAction('Fold')" class="btn-action bg-slate-700">FOLD</button>
+        <button onclick="recordAction('Call')" class="btn-action bg-blue-600">CALL</button>
+        <button onclick="recordAction('Raise')" class="btn-action bg-emerald-600">RAISE</button>
+    </div>
+
+    <div class="flex justify-between items-center px-1">
+        <button onclick="nextHand()" class="bg-indigo-600 px-6 py-2 rounded-lg text-xs font-bold italic">NEXT HAND #<span id="handNum">1</span></button>
+        <button onclick="localStorage.clear(); location.reload();" class="text-slate-600 text-[10px]">重置所有数据</button>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-slate-800 w-full rounded-3xl p-6 border border-slate-700 shadow-2xl">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i data-lucide="user-plus"></i> 设置此位置玩家</h3>
+            <input id="editName" type="text" placeholder="玩家名字/外号" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 text-white outline-none">
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <button onclick="savePlayer('FISH')" class="bg-yellow-500/20 text-yellow-500 py-3 rounded-xl text-xs font-bold">标记为：鱼</button>
+                <button onclick="savePlayer('REG')" class="bg-blue-500/20 text-blue-500 py-3 rounded-xl text-xs font-bold">标记为：高手</button>
             </div>
-    </div>
-
-    <div class="grid grid-cols-4 gap-2 mb-4">
-        <button onclick="recordAction('Fold')" class="bg-slate-700 py-3 rounded-xl text-xs font-bold">FOLD</button>
-        <button onclick="recordAction('Call')" class="bg-blue-600 py-3 rounded-xl text-xs font-bold">CALL</button>
-        <button onclick="recordAction('Raise')" class="bg-emerald-600 py-3 rounded-xl text-xs font-bold">RAISE</button>
-        <button onclick="openKeyboard()" class="bg-indigo-600 py-3 rounded-xl text-xs font-bold">CARDS</button>
-    </div>
-
-    <div class="bg-slate-800 rounded-xl p-3">
-        <h3 class="text-[10px] font-bold text-slate-500 mb-2">SESSION HUD (实时数据)</h3>
-        <div id="hudList" class="space-y-2"></div>
+            <button onclick="closeEdit()" class="w-full text-slate-500 text-sm py-2">取消返回</button>
+        </div>
     </div>
 
     <script>
-        const positions = [
-            {id: 'SB', x: '50%', y: '90%'}, {id: 'BB', x: '20%', y: '80%'},
-            {id: 'UTG', x: '10%', y: '50%'}, {id: 'HJ', x: '25%', y: '20%'},
-            {id: 'CO', x: '75%', y: '20%'}, {id: 'BTN', x: '90%', y: '50%'}
-        ];
+        // 核心数据结构
+        let seats = JSON.parse(localStorage.getItem('poker_seats')) || {
+            'SB': {name: '大侠', type: 'REG', vpip_count: 0, pfr_count: 0, total_hands: 0},
+            'BB': {name: 'Barry', type: 'FISH', vpip_count: 0, pfr_count: 0, total_hands: 0},
+            'UTG': {name: 'Max', type: 'REG', vpip_count: 0, pfr_count: 0, total_hands: 0},
+            'HJ': {name: 'Kevin', type: 'REG', vpip_count: 0, pfr_count: 0, total_hands: 0},
+            'CO': {name: 'Mr.Chai', type: 'REG', vpip_count: 0, pfr_count: 0, total_hands: 0},
+            'BTN': {name: 'Dealer', type: 'REG', vpip_count: 0, pfr_count: 0, total_hands: 0}
+        };
 
-        let stats = JSON.parse(localStorage.getItem('poker_stats') || '{}');
-        let currentHand = [];
+        const layout = {
+            'SB': {x: '50%', y: '88%'}, 'BB': {x: '20%', y: '80%'},
+            'UTG': {x: '12%', y: '50%'}, 'HJ': {x: '30%', y: '18%'},
+            'CO': {x: '70%', y: '18%'}, 'BTN': {x: '88%', y: '50%'}
+        };
 
-        function init() {
-            // 生成牌桌玩家
-            const table = document.getElementById('tablePlayers');
-            positions.forEach(pos => {
-                if(!stats[pos.id]) stats[pos.id] = { hands: 0, vpip: 0, pfr: 0, total: 0 };
-                const s = stats[pos.id];
-                const vpip = s.total > 0 ? Math.round((s.vpip / s.total) * 100) : 0;
+        let activeSeat = 'UTG'; 
+        let currentHandNum = parseInt(localStorage.getItem('hand_count') || '1');
+
+        function renderTable() {
+            const container = document.getElementById('tablePlayers');
+            container.innerHTML = '';
+            for (let id in seats) {
+                const p = seats[id];
+                const vpip = p.total_hands > 0 ? Math.round((p.vpip_count / p.total_hands) * 100) : 0;
+                const pfr = p.total_hands > 0 ? Math.round((p.pfr_count / p.total_hands) * 100) : 0;
                 
-                table.innerHTML += `
-                    <div class="player-slot" style="left:${pos.x}; top:${pos.y}">
-                        <div class="text-[9px] font-bold text-slate-400">${pos.id}</div>
-                        <div class="w-10 h-10 rounded-full bg-slate-700 border-2 border-slate-500 mx-auto flex items-center justify-center text-[10px]">P</div>
-                        <div class="hud-tag">V:${vpip}%</div>
+                container.innerHTML += `
+                    <div class="player-slot" style="left:${layout[id].x}; top:${layout[id].y}" onclick="openEdit('${id}')">
+                        <div class="text-[9px] font-bold ${activeSeat === id ? 'text-yellow-400' : 'text-slate-500'} mb-1">${id}</div>
+                        <div class="avatar-circle ${activeSeat === id ? 'active-seat' : ''} ${p.type === 'FISH' ? 'text-yellow-500' : 'text-blue-400'}">
+                            ${p.name.substring(0,2)}
+                        </div>
+                        <div class="hud-box">
+                            V:${vpip}% P:${pfr}%<br>H:${p.total_hands}
+                        </div>
                     </div>
                 `;
-            });
-
-            // 生成52张牌键盘
-            const grid = document.getElementById('cardsGrid');
-            const suits = [{s:'s', n:'♠'}, {s:'h', n:'♥'}, {s:'d', n:'♦'}, {s:'c', n:'♣'}];
-            const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-            
-            suits.forEach(suit => {
-                ranks.forEach(rank => {
-                    grid.innerHTML += `
-                        <button onclick="selectCard('${rank}${suit.s}')" class="card-btn suit-${suit.s}">${rank}</button>
-                    `;
-                });
-            });
+            }
+            document.getElementById('handNum').innerText = currentHandNum;
+            lucide.createIcons();
         }
 
-        function openKeyboard() { document.getElementById('pokerKeyboard').classList.remove('hidden'); }
-        function closeKeyboard() { document.getElementById('pokerKeyboard').classList.add('hidden'); }
+        let editingId = '';
+        function openEdit(id) { 
+            editingId = id; 
+            // 如果点的是当前行动位以外的位置，则打开编辑；如果点的是行动位，则切换焦点
+            if(activeSeat === id) {
+                document.getElementById('editModal').classList.remove('hidden');
+            } else {
+                activeSeat = id;
+                renderTable();
+            }
+        }
+        function closeEdit() { document.getElementById('editModal').classList.add('hidden'); }
 
-        function selectCard(card) {
-            currentHand.push(card);
-            if(currentHand.length > 2) currentHand.shift();
-            console.log("Selected:", currentHand);
+        function savePlayer(type) {
+            const name = document.getElementById('editName').value;
+            if(name) seats[editingId].name = name;
+            seats[editingId].type = type;
+            localStorage.setItem('poker_seats', JSON.stringify(seats));
+            closeEdit();
+            renderTable();
         }
 
+        // 核心记录逻辑：点击即增加数据
         function recordAction(type) {
-            // 简单的统计逻辑模拟
-            // 每一手牌你点击 Raise，对应的位置 PFR 就会上升
-            alert(type + " 已记录。数据正在实时更新 HUD...");
+            const p = seats[activeSeat];
+            p.total_hands++; // 该位置总局数+1
+            
+            if(type === 'Call') p.vpip_count++;
+            if(type === 'Raise') {
+                p.vpip_count++;
+                p.pfr_count++;
+            }
+            
+            localStorage.setItem('poker_seats', JSON.stringify(seats));
+            
+            // 自动移动到下一个行动位 (模拟牌桌顺序)
+            const order = ['SB', 'BB', 'UTG', 'HJ', 'CO', 'BTN'];
+            let idx = order.indexOf(activeSeat);
+            activeSeat = order[(idx + 1) % order.length];
+            
+            renderTable();
         }
 
-        init();
+        function nextHand() {
+            currentHandNum++;
+            localStorage.setItem('hand_count', currentHandNum);
+            renderTable();
+        }
+
+        renderTable();
     </script>
 </body>
 </html>
