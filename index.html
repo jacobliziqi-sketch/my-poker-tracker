@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的德扑手牌记事本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">德扑手牌录入</h1>
+        
+        <div class="space-y-4">
+            <input id="hand" type="text" placeholder="手牌 (如: AA, KsQh)" class="w-full border p-2 rounded">
+            <input id="pos" type="text" placeholder="位置 (如: BTN, SB)" class="w-full border p-2 rounded">
+            <input id="result" type="number" placeholder="盈亏金额" class="w-full border p-2 rounded">
+            <button onclick="saveHand()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">保存记录</button>
+        </div>
+
+        <div class="mt-8">
+            <h2 class="font-bold border-b mb-2">历史记录</h2>
+            <ul id="historyList" class="space-y-2"></ul>
+        </div>
+    </div>
+
+    <script>
+        function saveHand() {
+            const hand = document.getElementById('hand').value;
+            const pos = document.getElementById('pos').value;
+            const result = document.getElementById('result').value;
+            
+            if(!hand) return alert('请输入手牌');
+
+            const li = document.createElement('li');
+            li.className = "text-sm border-b pb-1 flex justify-between";
+            li.innerHTML = `<span>${pos}: <b>${hand}</b></span> <span class="${result >= 0 ? 'text-green-500' : 'text-red-500'}">${result}</span>`;
+            
+            document.getElementById('historyList').prepend(li);
+            
+            // 清空输入
+            document.getElementById('hand').value = '';
+        }
+    </script>
+</body>
+</html>
