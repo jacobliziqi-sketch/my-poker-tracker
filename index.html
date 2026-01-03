@@ -3,180 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PokerFlow 2.0</title>
+    <title>PokerFlow 2.1 - 完整逻辑版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --poker-green: #1a4d2e; --poker-dark: #070b14; }
         body { background-color: var(--poker-dark); color: #f8fafc; font-family: -apple-system, system-ui; touch-action: manipulation; }
-        .table-field { background: radial-gradient(circle at center, #246b41 0%, #0f331d 100%); border: 4px solid #2d1f1f; border-radius: 140px; height: 260px; position: relative; width: 100%; margin: 10px 0; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
-        .seat { position: absolute; transform: translate(-50%, -50%); width: 70px; transition: all 0.2s; }
-        .avatar-ring { @apply w-12 h-12 rounded-full border-2 border-slate-700 bg-slate-900 flex items-center justify-center font-bold text-sm shadow-xl; }
-        .active-seat .avatar-ring { border-color: #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); scale: 1.1; }
-        .hud-vpip { font-size: 9px; @apply mt-1 px-1.5 py-0.5 rounded bg-black/40 text-emerald-400 font-mono; }
-        .profit-bb { font-size: 10px; @apply font-bold mt-0.5; }
-        .action-btn { @apply flex-1 py-5 rounded-2xl font-black text-sm active:opacity-50 transition-all; }
+        .table-field { background: radial-gradient(circle at center, #246b41 0%, #0f331d 100%); border: 4px solid #2d1f1f; border-radius: 140px; height: 280px; position: relative; width: 100%; margin: 15px 0; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        .seat { position: absolute; transform: translate(-50%, -50%); width: 75px; text-align: center; cursor: pointer; }
+        .avatar-ring { @apply w-12 h-12 rounded-full border-2 border-slate-700 bg-slate-900 flex items-center justify-center font-bold text-sm relative transition-all; }
+        .active-seat .avatar-ring { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.6); transform: scale(1.1); }
+        .btn-tag { @apply absolute -top-1 -right-1 w-5 h-5 bg-white text-black rounded-full text-[10px] flex items-center justify-center font-black border border-gray-400; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .force-tag { @apply absolute -bottom-1 left-1/2 -translate-x-1/2 px-1 bg-red-600 text-white text-[8px] rounded leading-tight font-bold; }
+        .hud-vpip { font-size: 8px; @apply mt-1 px-1 rounded bg-black/40 text-emerald-400 font-mono; }
+        .stack-info { font-size: 10px; @apply font-bold text-yellow-500 mt-0.5; }
+        .action-btn { @apply flex-1 py-5 rounded-2xl font-black text-xs active:opacity-50 transition-all shadow-lg uppercase tracking-widest; }
     </style>
 </head>
 <body class="p-4 flex flex-col min-h-screen">
 
-    <header class="flex justify-between items-center px-1 mb-2">
-        <div onclick="openSessionMenu()" class="cursor-pointer">
-            <h1 id="curSessionName" class="text-lg font-black tracking-tight text-blue-400">点击创建新场次</h1>
-            <p id="curBBInfo" class="text-[10px] text-slate-500 font-mono uppercase font-bold">Session Manager</p>
+    <header class="flex justify-between items-end px-1 mb-2">
+        <div onclick="openSessionMenu()">
+            <h1 id="curSessionName" class="text-lg font-black text-blue-400 leading-tight">载入中...</h1>
+            <p id="curBBInfo" class="text-[9px] text-slate-500 font-bold uppercase">SET BLINDS</p>
         </div>
-        <button onclick="openPlayerEditor()" class="p-2 bg-slate-800 rounded-full"><i data-lucide="user-cog" class="w-4 h-4"></i></button>
+        <div class="text-right">
+            <span class="text-[10px] text-slate-500 font-bold uppercase block">Current Stage</span>
+            <span id="handCounter" class="text-xs font-mono font-bold text-emerald-500 tracking-tighter">HAND #0</span>
+        </div>
     </header>
 
-    <main class="table-field shadow-2xl" id="pokerTable">
+    <main class="table-field shadow-2xl">
         <div id="seatsContainer"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center">
-            <div id="handCounter" class="text-[10px] text-slate-500 font-bold">HAND #0</div>
-            <div id="potDisplay" class="text-3xl font-black text-white/20 font-mono">FLOW</div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+            <i data-lucide="layers" class="w-12 h-12"></i>
         </div>
     </main>
 
     <section class="mt-auto space-y-3">
         <div class="flex gap-2">
-            <button onclick="handleAction('Fold')" class="action-btn bg-slate-800 border border-slate-700">FOLD</button>
-            <button onclick="handleAction('Call')" class="action-btn bg-blue-600">CALL</button>
-            <button onclick="handleAction('Raise')" class="action-btn bg-emerald-600 text-black">RAISE</button>
+            <button onclick="handleAction('Fold')" class="action-btn bg-slate-800 border border-slate-700">Fold</button>
+            <button onclick="handleAction('Call')" class="action-btn bg-blue-600">Call</button>
+            <button onclick="handleAction('Raise')" class="action-btn bg-emerald-600 text-black">Raise</button>
         </div>
         
-        <div class="bg-slate-900 rounded-3xl p-4 border border-slate-800 flex items-center gap-4">
+        <div class="bg-slate-900 rounded-3xl p-4 border border-slate-800 flex items-center gap-3">
             <div class="flex-1">
                 <p class="text-[9px] text-slate-500 font-bold ml-1 mb-1">本局盈亏 (金额)</p>
                 <input id="inputProfit" type="number" placeholder="0.00" class="w-full bg-transparent text-2xl font-mono font-bold outline-none text-white">
             </div>
-            <button onclick="submitRound()" class="h-14 px-8 bg-indigo-600 rounded-2xl font-black text-sm shadow-lg">SAVE</button>
+            <button onclick="submitRound()" class="h-14 px-8 bg-indigo-600 rounded-2xl font-black text-xs shadow-lg">SAVE</button>
         </div>
     </section>
 
+    <div id="modalPlayer" class="fixed inset-0 bg-black/95 z-[100] p-6 hidden flex flex-col justify-center">
+        <div class="flex justify-between mb-8">
+            <h2 class="text-2xl font-black text-yellow-500">位置详情</h2>
+            <button onclick="closeModals()"><i data-lucide="x"></i></button>
+        </div>
+        <div class="space-y-6 bg-slate-900 p-6 rounded-3xl border border-slate-800">
+            <div>
+                <label class="text-xs text-slate-500 font-bold mb-2 block uppercase">玩家昵称</label>
+                <input id="inPlayerName" class="w-full bg-slate-950 p-4 rounded-xl text-xl font-bold border border-slate-700 outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs text-slate-500 font-bold mb-2 block uppercase">后手深度 (BB)</label>
+                    <input id="inPlayerStack" type="number" class="w-full bg-slate-950 p-4 rounded-xl text-xl font-bold border border-slate-700 outline-none text-yellow-500">
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button onclick="setAsButton()" class="w-full h-[60px] bg-white text-black rounded-xl font-black text-xs">设为 BTN</button>
+                </div>
+            </div>
+            <button onclick="savePlayerUpdate()" class="w-full bg-blue-600 py-4 rounded-2xl font-black mt-4 uppercase tracking-widest text-sm">确认更新</button>
+        </div>
+    </div>
+
     <div id="modalSession" class="fixed inset-0 bg-black/95 z-[100] p-6 hidden">
         <div class="flex justify-between mb-8"><h2 class="text-2xl font-black">场次管理</h2><button onclick="closeModals()"><i data-lucide="x"></i></button></div>
-        <div class="bg-blue-600/10 border border-blue-500/30 p-5 rounded-3xl mb-6">
-            <input id="inSessionName" placeholder="场次名称 (如: 周五晚家局)" class="w-full bg-slate-900 p-3 rounded-xl mb-3 outline-none border border-slate-700">
-            <input id="inSessionBB" type="number" placeholder="大盲金额" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none border border-slate-700">
-            <button onclick="createSession()" class="w-full bg-blue-600 py-3 rounded-xl font-bold uppercase tracking-widest text-xs">开启新场次</button>
-        </div>
-        <div id="sessionHistory" class="space-y-3"></div>
-    </div>
-
-    <div id="modalPlayer" class="fixed inset-0 bg-black/95 z-[100] p-6 hidden">
-        <div class="flex justify-between mb-8"><h2 class="text-2xl font-black text-yellow-500">编辑位置</h2><button onclick="closeModals()"><i data-lucide="x"></i></button></div>
-        <div class="space-y-6">
-            <div>
-                <label class="text-xs text-slate-500 font-bold mb-2 block">玩家昵称</label>
-                <input id="inPlayerName" class="w-full bg-slate-900 p-4 rounded-2xl text-xl font-bold border border-slate-700 outline-none">
-            </div>
-            <div>
-                <label class="text-xs text-slate-500 font-bold mb-4 block">选择识别色</label>
-                <div id="colorGrid" class="grid grid-cols-4 gap-4"></div>
-            </div>
-            <button onclick="savePlayer()" class="w-full bg-white text-black py-4 rounded-2xl font-black mt-8 tracking-widest">保存更新</button>
-        </div>
-    </div>
-
-    <script>
-        // 核心变量
-        let db = JSON.parse(localStorage.getItem('pf_db')) || { sessions: [], currentIdx: -1 };
-        const layout = { 'SB':{x:50,y:88}, 'BB':{x:20,y:80}, 'UTG':{x:12,y:50}, 'HJ':{x:30,y:18}, 'CO':{x:70,y:18}, 'BTN':{x:88,y:50} };
-        const colors = ['#3b82f6','#ef4444','#22c55e','#eab308','#a855f7','#ec4899','#f97316','#64748b'];
-        let activeSeat = 'UTG';
-        let tempColor = colors[0];
-
-        // 初始化
-        function init() {
-            if(db.currentIdx === -1) { openSessionMenu(); } else { renderTable(); }
-            lucide.createIcons();
-        }
-
-        // 渲染逻辑
-        function renderTable() {
-            const s = db.sessions[db.currentIdx];
-            document.getElementById('curSessionName').innerText = s.name;
-            document.getElementById('curBBInfo').innerText = `BLINDS: 1/${s.bb} · BB MODE`;
-            document.getElementById('handCounter').innerText = `HAND #${s.handCount}`;
-
-            const container = document.getElementById('seatsContainer');
-            container.innerHTML = '';
-            for(let id in s.seats) {
-                const p = s.seats[id];
-                const vpip = p.hands > 0 ? Math.round((p.vpip/p.hands)*100) : 0;
-                container.innerHTML += `
-                    <div onclick="activeSeat='${id}';renderTable();" class="seat ${activeSeat === id ? 'active-seat' : ''}" style="left:${layout[id].x}%; top:${layout[id].y}%">
-                        <div class="avatar-ring" style="background:${p.color}">${p.name[0]}</div>
-                        <div class="hud-vpip">V:${vpip}%</div>
-                        <div class="profit-bb ${p.profit>=0?'text-emerald-400':'text-red-500'}">${(p.profit/s.bb).toFixed(1)}</div>
-                        <div class="text-[8px] text-slate-600 font-bold uppercase mt-0.5">${id}</div>
-                    </div>
-                `;
-            }
-        }
-
-        // 操作逻辑
-        function handleAction(type) {
-            if(db.currentIdx === -1) return;
-            const s = db.sessions[db.currentIdx];
-            const p = s.seats[activeSeat];
-            p.hands++;
-            if(type === 'Call' || type === 'Raise') p.vpip++;
-            
-            const order = ['SB','BB','UTG','HJ','CO','BTN'];
-            activeSeat = order[(order.indexOf(activeSeat)+1)%order.length];
-            save(); renderTable();
-        }
-
-        function submitRound() {
-            const s = db.sessions[db.currentIdx];
-            s.seats[activeSeat].profit += parseFloat(document.getElementById('inputProfit').value || 0);
-            s.handCount++;
-            document.getElementById('inputProfit').value = '';
-            save(); renderTable();
-        }
-
-        // 场次与玩家管理
-        function createSession() {
-            const name = document.getElementById('inSessionName').value || '新场次';
-            const bb = parseInt(document.getElementById('inSessionBB').value || 2);
-            const seats = {};
-            ['SB','BB','UTG','HJ','CO','BTN'].forEach((id,i) => {
-                seats[id] = {name:id, color:colors[i%colors.length], hands:0, vpip:0, profit:0};
-            });
-            db.sessions.unshift({ name, bb, handCount: 0, seats });
-            db.currentIdx = 0;
-            save(); closeModals(); renderTable();
-        }
-
-        function openSessionMenu() {
-            document.getElementById('modalSession').classList.remove('hidden');
-            const hist = document.getElementById('sessionHistory');
-            hist.innerHTML = db.sessions.map((s,i) => `
-                <div onclick="db.currentIdx=${i};save();closeModals();renderTable();" class="bg-slate-900 p-4 rounded-2xl flex justify-between items-center border border-slate-800">
-                    <span class="font-bold">${s.name}</span><span class="text-xs text-slate-500">${s.handCount} HANDS</span>
-                </div>
-            `).join('');
-        }
-
-        function openPlayerEditor() {
-            document.getElementById('modalPlayer').classList.remove('hidden');
-            const p = db.sessions[db.currentIdx].seats[activeSeat];
-            document.getElementById('inPlayerName').value = p.name;
-            const grid = document.getElementById('colorGrid');
-            grid.innerHTML = colors.map(c => `<div onclick="tempColor='${c}';savePlayer()" class="w-full h-12 rounded-xl" style="background:${c}"></div>`).join('');
-        }
-
-        function savePlayer() {
-            const p = db.sessions[db.currentIdx].seats[activeSeat];
-            p.name = document.getElementById('inPlayerName').value;
-            p.color = tempColor;
-            save(); closeModals(); renderTable();
-        }
-
-        function closeModals() { document.querySelectorAll('[id^=modal]').forEach(m => m.classList.add('hidden')); }
-        function save() { localStorage.setItem('pf_db', JSON.stringify(db)); }
-        
-        init();
-    </script>
-</body>
-</html>
+        <div class="bg-indigo-600/10 border border-indigo-500/30 p-5 rounded-3xl mb-6 space-y-3">
+            <input id="inSessionName" placeholder="场次名称" class="w-full bg-slate-900 p-3 rounded-xl outline-none border border-slate-700">
