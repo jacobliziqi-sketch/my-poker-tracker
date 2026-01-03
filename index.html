@@ -3,91 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokerFlow Pro - 多场次管理版</title>
+    <title>PokerFlow Pro - 玩家定制版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #070b14; color: #e2e8f0; font-family: sans-serif; overflow-x: hidden; }
+        body { background-color: #070b14; color: #e2e8f0; font-family: sans-serif; overflow: hidden; }
         .poker-table { background: radial-gradient(circle, #1a4d2e 0%, #0a2615 100%); border: 6px solid #2d1f1f; border-radius: 160px; position: relative; height: 280px; width: 100%; margin: 10px 0; }
         .player-slot { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 75px; }
-        .avatar { @apply w-11 h-11 rounded-full border-2 border-slate-600 bg-slate-800 flex flex-col items-center justify-center text-[9px] font-bold transition-all; }
-        .active-seat { border-color: #fbbf24; box-shadow: 0 0 12px #fbbf24; }
+        .avatar { @apply w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center text-sm font-bold transition-all shadow-lg; }
+        .active-seat { border-color: #fbbf24 !important; box-shadow: 0 0 15px #fbbf24; scale: 1.1; }
         .hud-box { font-size: 8px; @apply mt-1 bg-black/60 rounded px-1 text-emerald-400 font-mono; }
-        .modal-full { @apply fixed inset-0 bg-slate-950 z-[100] p-6 overflow-y-auto hidden; }
-        .session-card { @apply bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-3 flex justify-between items-center; }
+        .modal-full { @apply fixed inset-0 bg-slate-950 z-[100] p-6 overflow-y-auto hidden flex flex-col; }
+        
+        /* 头像颜色库 */
+        .av-blue { background: #3b82f6; color: white; }
+        .av-red { background: #ef4444; color: white; }
+        .av-green { background: #22c55e; color: white; }
+        .av-yellow { background: #eab308; color: black; }
+        .av-purple { background: #a855f7; color: white; }
+        .av-pink { background: #ec4899; color: white; }
+        .av-orange { background: #f97316; color: white; }
+        .av-slate { background: #64748b; color: white; }
+        
+        .color-dot { @apply w-8 h-8 rounded-full cursor-pointer border-2 border-transparent transition-all; }
+        .color-dot.selected { @apply border-white scale-110; }
     </style>
 </head>
 <body class="p-4 pb-10">
     <div class="flex justify-between items-center mb-4">
-        <button onclick="showSessionManager()" class="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-xl text-xs">
-            <i data-lucide="layers" class="w-4 h-4"></i> 切换场次
+        <button onclick="showSessionManager()" class="bg-slate-800 px-3 py-2 rounded-xl text-xs flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-blue-400"></i> 场次列表
         </button>
         <div class="text-right">
-            <div id="sessionTitle" class="text-xs font-bold text-blue-400">未开始场次</div>
-            <div id="bbInfo" class="text-[9px] text-slate-500">1/2 BB</div>
+            <div id="sessionTitle" class="text-xs font-bold">未选择场次</div>
+            <div id="bbInfo" class="text-[9px] text-slate-500 italic">1/2 BB</div>
         </div>
     </div>
 
     <div class="poker-table shadow-2xl">
         <div id="tablePlayers"></div>
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-            <div id="potValue" class="text-2xl font-black text-yellow-500 font-mono">HAND #<span id="handNum">0</span></div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest">Hand Count</div>
+            <div id="handNum" class="text-3xl font-black text-yellow-500 font-mono">0</div>
         </div>
     </div>
 
     <div class="grid grid-cols-3 gap-2 mb-4">
-        <button onclick="recordAction('Fold')" class="py-4 rounded-xl bg-slate-800 font-bold text-xs">FOLD</button>
-        <button onclick="recordAction('Call')" class="py-4 rounded-xl bg-blue-700 font-bold text-xs">CALL</button>
-        <button onclick="recordAction('Raise')" class="py-4 rounded-xl bg-emerald-600 font-bold text-xs text-black">RAISE</button>
+        <button onclick="recordAction('Fold')" class="py-4 rounded-xl bg-slate-800 font-bold text-xs active:bg-slate-700">FOLD</button>
+        <button onclick="recordAction('Call')" class="py-4 rounded-xl bg-blue-700 font-bold text-xs active:bg-blue-600">CALL</button>
+        <button onclick="recordAction('Raise')" class="py-4 rounded-xl bg-emerald-600 font-bold text-xs text-black active:bg-emerald-500">RAISE</button>
     </div>
 
     <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-        <div class="flex justify-between items-center mb-2">
-            <span class="text-[10px] text-slate-500 font-bold">本局输赢结算</span>
-            <span id="activeNameDisplay" class="text-[10px] text-yellow-500 italic">选中玩家记录盈亏</span>
+        <div class="flex justify-between items-center mb-2 px-1">
+            <span id="activeNameDisplay" class="text-[11px] font-bold text-blue-300 italic">选中位置记录盈亏</span>
+            <span class="text-[9px] text-slate-600">输入金额点SAVE</span>
         </div>
-        <div class="flex gap-3">
-            <input id="roundProfit" type="number" placeholder="金额" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xl font-mono outline-none">
-            <button onclick="saveRound()" class="bg-indigo-600 px-6 rounded-lg font-black text-xs">SAVE</button>
+        <div class="flex gap-2">
+            <input id="roundProfit" type="number" placeholder="+/-" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-xl font-mono outline-none focus:border-blue-500 text-white">
+            <button onclick="saveRound()" class="bg-blue-600 px-8 rounded-xl font-black text-xs shadow-lg shadow-blue-900/20">SAVE</button>
+        </div>
+    </div>
+
+    <div id="playerEditModal" class="modal-full">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black">编辑玩家信息</h2>
+            <button onclick="closePlayerEdit()"><i data-lucide="x"></i></button>
+        </div>
+
+        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex-1">
+            <div class="flex flex-col items-center mb-8">
+                <div id="previewAvatar" class="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold mb-4 av-blue">
+                    P
+                </div>
+                <input id="editPlayerName" type="text" placeholder="输入名字或外号" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-xl text-center text-xl font-bold outline-none focus:border-blue-500">
+            </div>
+
+            <label class="text-xs text-slate-500 font-bold mb-4 block uppercase tracking-widest text-center">选择头像颜色</label>
+            <div class="grid grid-cols-4 gap-4 px-4 mb-10" id="colorPicker">
+                </div>
+
+            <button onclick="confirmPlayerUpdate()" class="w-full bg-emerald-500 py-4 rounded-2xl text-black font-black tracking-widest shadow-lg shadow-emerald-900/20">
+                确定并保存
+            </button>
         </div>
     </div>
 
     <div id="sessionModal" class="modal-full">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-black">场次管理</h2>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black italic text-blue-400">SESSIONS</h2>
             <button onclick="closeSessionManager()"><i data-lucide="x"></i></button>
         </div>
-        
-        <div class="mb-8 bg-blue-900/20 p-6 rounded-3xl border border-blue-500/30">
-            <h3 class="text-sm font-bold mb-4">开启新场次</h3>
-            <div class="space-y-3">
-                <input id="newSessionName" type="text" placeholder="场次名称 (如: 1月3日家局)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-sm outline-none">
-                <input id="newSessionBB" type="number" placeholder="大盲注金额 (如: 2)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-sm outline-none">
-                <button onclick="createNewSession()" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-sm">开始记录</button>
-            </div>
+        <div class="bg-blue-600/10 p-5 rounded-2xl border border-blue-500/20 mb-6">
+            <input id="newSessionName" placeholder="场次名称" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-lg text-sm mb-3 outline-none">
+            <input id="newSessionBB" type="number" placeholder="大盲金额 (如: 5)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-lg text-sm mb-3 outline-none">
+            <button onclick="createNewSession()" class="w-full bg-blue-600 py-2 rounded-lg font-bold text-xs uppercase">开启新场次</button>
         </div>
-
-        <h3 class="text-xs font-bold text-slate-500 mb-4 uppercase">历史场次</h3>
-        <div id="sessionList"></div>
+        <div id="sessionList" class="space-y-3"></div>
     </div>
 
     <script>
-        let sessions = JSON.parse(localStorage.getItem('poker_sessions')) || [];
-        let currentSessionIdx = localStorage.getItem('current_session_idx') !== null ? parseInt(localStorage.getItem('current_session_idx')) : -1;
-        
+        const colors = [
+            {class: 'av-blue', val: '#3b82f6'}, {class: 'av-red', val: '#ef4444'},
+            {class: 'av-green', val: '#22c55e'}, {class: 'av-yellow', val: '#eab308'},
+            {class: 'av-purple', val: '#a855f7'}, {class: 'av-pink', val: '#ec4899'},
+            {class: 'av-orange', val: '#f97316'}, {class: 'av-slate', val: '#64748b'}
+        ];
+
+        let sessions = JSON.parse(localStorage.getItem('poker_sessions_v2')) || [];
+        let currentIdx = localStorage.getItem('poker_current_idx') !== null ? parseInt(localStorage.getItem('poker_current_idx')) : -1;
+        let activeSeat = 'UTG';
+        let editingSeat = '';
+        let selectedColorClass = 'av-blue';
+
         const layout = {
             'SB': {x: '50%', y: '88%'}, 'BB': {x: '20%', y: '80%'},
             'UTG': {x: '12%', y: '50%'}, 'HJ': {x: '30%', y: '18%'},
             'CO': {x: '70%', y: '18%'}, 'BTN': {x: '88%', y: '50%'}
         };
-        let activeSeat = 'UTG';
 
         function render() {
-            if (currentSessionIdx === -1) {
-                showSessionManager();
-                return;
-            }
-            const s = sessions[currentSessionIdx];
+            if (currentIdx === -1) { showSessionManager(); return; }
+            const s = sessions[currentIdx];
             document.getElementById('sessionTitle').innerText = s.name;
             document.getElementById('bbInfo').innerText = `1/${s.bb} BB`;
             document.getElementById('handNum').innerText = s.handCount;
@@ -100,13 +137,15 @@
                 const pfr = p.hands > 0 ? Math.round((p.pfr / p.hands) * 100) : 0;
                 
                 container.innerHTML += `
-                    <div class="player-slot" style="left:${layout[id].x}; top:${layout[id].y}" onclick="selectSeat('${id}')">
-                        <div class="text-[8px] font-bold ${activeSeat === id ? 'text-yellow-400' : 'text-slate-600'}">${id}</div>
-                        <div class="avatar ${activeSeat === id ? 'active-seat' : ''}">
-                            <span>${p.name}</span>
-                            <span class="${p.profit >= 0 ? 'text-emerald-400' : 'text-red-500'}">${(p.profit/s.bb).toFixed(1)}</span>
+                    <div class="player-slot" style="left:${layout[id].x}; top:${layout[id].y}" onclick="handleSeatClick('${id}')">
+                        <div class="text-[8px] font-bold ${activeSeat === id ? 'text-yellow-400' : 'text-slate-600'} uppercase">${id}</div>
+                        <div class="avatar ${p.colorClass} ${activeSeat === id ? 'active-seat' : ''}">
+                            ${p.name.substring(0,2)}
                         </div>
                         <div class="hud-box">V:${vpip} P:${pfr}</div>
+                        <div class="text-[9px] mt-0.5 font-bold ${p.profit >=0 ? 'text-emerald-400' : 'text-red-500'}">
+                            ${(p.profit/s.bb).toFixed(1)}
+                        </div>
                     </div>
                 `;
             }
@@ -114,78 +153,104 @@
             lucide.createIcons();
         }
 
-        function selectSeat(id) { activeSeat = id; render(); }
+        function handleSeatClick(id) {
+            if(activeSeat === id) {
+                openPlayerEdit(id);
+            } else {
+                activeSeat = id;
+                render();
+            }
+        }
 
+        // 编辑功能
+        function openPlayerEdit(id) {
+            editingSeat = id;
+            const p = sessions[currentIdx].seats[id];
+            document.getElementById('editPlayerName').value = p.name;
+            selectedColorClass = p.colorClass || 'av-blue';
+            updatePreview();
+            
+            const picker = document.getElementById('colorPicker');
+            picker.innerHTML = colors.map(c => `
+                <div onclick="selectedColorClass='${c.class}';updatePreview()" 
+                     class="color-dot ${c.class} ${selectedColorClass === c.class ? 'selected' : ''}"></div>
+            `).join('');
+            
+            document.getElementById('playerEditModal').classList.remove('hidden');
+        }
+
+        function updatePreview() {
+            const name = document.getElementById('editPlayerName').value || 'P';
+            const preview = document.getElementById('previewAvatar');
+            preview.innerText = name.substring(0,2);
+            preview.className = `w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold mb-4 ${selectedColorClass}`;
+            
+            // 实时更新颜色选择状态
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                dot.classList.toggle('selected', dot.classList.contains(selectedColorClass));
+            });
+        }
+
+        function confirmPlayerUpdate() {
+            const name = document.getElementById('editPlayerName').value || editingSeat;
+            const p = sessions[currentIdx].seats[editingSeat];
+            p.name = name;
+            p.colorClass = selectedColorClass;
+            save();
+            closePlayerEdit();
+            render();
+        }
+
+        function closePlayerEdit() { document.getElementById('playerEditModal').classList.add('hidden'); }
+
+        // 基础逻辑
         function recordAction(type) {
-            const s = sessions[currentSessionIdx];
+            const s = sessions[currentIdx];
             const p = s.seats[activeSeat];
             p.hands++;
             if(type === 'Call') p.vpip++;
             if(type === 'Raise') { p.vpip++; p.pfr++; }
-            
             const order = ['SB', 'BB', 'UTG', 'HJ', 'CO', 'BTN'];
             activeSeat = order[(order.indexOf(activeSeat) + 1) % order.length];
             save(); render();
         }
 
         function saveRound() {
-            const s = sessions[currentSessionIdx];
-            const val = parseFloat(document.getElementById('roundProfit').value || 0);
-            s.seats[activeSeat].profit += val;
+            const s = sessions[currentIdx];
+            s.seats[activeSeat].profit += parseFloat(document.getElementById('roundProfit').value || 0);
             s.handCount++;
             document.getElementById('roundProfit').value = '';
             save(); render();
         }
 
         function createNewSession() {
-            const name = document.getElementById('newSessionName').value || `场次 #${sessions.length + 1}`;
+            const name = document.getElementById('newSessionName').value || `Session ${sessions.length + 1}`;
             const bb = parseInt(document.getElementById('newSessionBB').value || 2);
-            const newS = {
-                name, bb, handCount: 0,
-                seats: {
-                    'SB': {name: 'P1', profit: 0, vpip: 0, pfr: 0, hands: 0},
-                    'BB': {name: 'P2', profit: 0, vpip: 0, pfr: 0, hands: 0},
-                    'UTG': {name: 'P3', profit: 0, vpip: 0, pfr: 0, hands: 0},
-                    'HJ': {name: 'P4', profit: 0, vpip: 0, pfr: 0, hands: 0},
-                    'CO': {name: 'P5', profit: 0, vpip: 0, pfr: 0, hands: 0},
-                    'BTN': {name: 'P6', profit: 0, vpip: 0, pfr: 0, hands: 0}
-                }
-            };
-            sessions.unshift(newS);
-            currentSessionIdx = 0;
-            save();
-            closeSessionManager();
-            render();
+            const seats = {};
+            ['SB','BB','UTG','HJ','CO','BTN'].forEach((id, i) => {
+                seats[id] = {name: id, colorClass: colors[i%colors.length].class, profit:0, vpip:0, pfr:0, hands:0};
+            });
+            sessions.unshift({name, bb, handCount:0, seats});
+            currentIdx = 0;
+            save(); closeSessionManager(); render();
         }
 
-        function showSessionManager() {
+        function showSessionManager() { 
             document.getElementById('sessionModal').classList.remove('hidden');
-            const list = document.getElementById('sessionList');
-            list.innerHTML = sessions.map((s, i) => `
-                <div class="session-card" onclick="switchSession(${i})">
-                    <div>
-                        <div class="font-bold text-sm">${s.name}</div>
-                        <div class="text-[10px] text-slate-500">${s.handCount} 手牌 · 盲注 1/${s.bb}</div>
-                    </div>
+            document.getElementById('sessionList').innerHTML = sessions.map((s, i) => `
+                <div class="p-4 bg-slate-900 rounded-2xl mb-2 flex justify-between items-center" onclick="currentIdx=${i};save();closeSessionManager();render();">
+                    <div><div class="font-bold text-sm text-blue-300">${s.name}</div><div class="text-[10px] text-slate-500">${s.handCount} 手牌</div></div>
                     <i data-lucide="chevron-right" class="text-slate-700"></i>
                 </div>
             `).join('');
             lucide.createIcons();
         }
-
-        function switchSession(i) {
-            currentSessionIdx = i;
-            save();
-            closeSessionManager();
-            render();
-        }
-
         function closeSessionManager() { document.getElementById('sessionModal').classList.add('hidden'); }
         function save() {
-            localStorage.setItem('poker_sessions', JSON.stringify(sessions));
-            localStorage.setItem('current_session_idx', currentSessionIdx);
+            localStorage.setItem('poker_sessions_v2', JSON.stringify(sessions));
+            localStorage.setItem('poker_current_idx', currentIdx);
         }
-
+        document.getElementById('editPlayerName').addEventListener('input', updatePreview);
         render();
     </script>
 </body>
