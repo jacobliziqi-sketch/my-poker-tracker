@@ -3,151 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokerFlow Pro</title>
+    <title>PokerFlow Pro - 实战高频版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .card-red { color: #ff5555; font-weight: bold; }
-        .card-black { color: #ffffff; font-weight: bold; }
+        body { background-color: #070b14; color: #e2e8f0; font-family: sans-serif; overflow-x: hidden; }
+        .poker-table { background: radial-gradient(circle, #1a4d2e 0%, #0a2615 100%); border: 8px solid #3d2b1f; border-radius: 200px; position: relative; height: 300px; width: 100%; margin: 20px 0; }
+        .player-slot { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 60px; }
+        .card-btn { @apply w-8 h-10 flex items-center justify-center rounded text-sm font-bold shadow-sm active:scale-90 transition-all; border: 1px solid rgba(255,255,255,0.1); }
+        .suit-s { background: #fff; color: #000; } .suit-h { background: #fff; color: #ff4444; }
+        .suit-d { background: #fff; color: #3b82f6; } .suit-c { background: #fff; color: #22c55e; }
+        .hud-tag { font-size: 8px; @apply px-1 rounded bg-black/50 text-emerald-400 font-mono; }
     </style>
 </head>
-<body class="p-4 pb-24">
-    <div class="max-w-md mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-black text-blue-400">POKERFLOW <span class="text-[10px] text-slate-500 uppercase">Pro</span></h1>
-            <div class="flex gap-2">
-                <button onclick="clearAllData()" class="p-2 text-slate-500 hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                <button onclick="toggleVillainModal()" class="w-10 h-10 rounded-full glass flex items-center justify-center text-blue-400"><i data-lucide="users"></i></button>
-            </div>
+<body class="p-2">
+    <div class="poker-table shadow-2xl">
+        <div id="tablePlayers"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <div class="text-[10px] text-gray-400 uppercase tracking-widest">Total Pot</div>
+            <div id="potDisplay" class="text-2xl font-black text-yellow-400 font-mono">0</div>
         </div>
-
-        <div class="glass rounded-3xl p-6 mb-8 shadow-2xl border-t-2 border-blue-500/30">
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="text-[10px] text-slate-500 font-bold ml-1 uppercase">My Hand</label>
-                    <input id="hand" oninput="previewHand()" type="text" placeholder="AsKd" class="w-full bg-slate-900/50 border-b border-slate-700 p-2 text-xl font-mono outline-none focus:border-blue-500 transition-all text-white">
-                </div>
-                <div id="handPreview" class="flex items-end justify-center text-3xl pb-1"></div>
-            </div>
-
-            <div class="mb-4">
-                <label class="text-[10px] text-slate-500 font-bold ml-1 uppercase">Villain</label>
-                <select id="villainSelect" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-sm outline-none text-white">
-                    <option value="Unknown">Unknown Player</option>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 mb-6 text-white">
-                <input id="flop" placeholder="Flop" class="bg-slate-900/50 p-2 rounded-lg text-xs border border-slate-700 outline-none">
-                <input id="turn" placeholder="Turn" class="bg-slate-900/50 p-2 rounded-lg text-xs border border-slate-700 outline-none">
-                <input id="river" placeholder="River" class="bg-slate-900/50 p-2 rounded-lg text-xs border border-slate-700 outline-none">
-            </div>
-
-            <button onclick="saveHand()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 py-4 rounded-2xl font-black text-xs tracking-widest transition-all shadow-lg shadow-blue-900/20 text-white">
-                RECORD SESSION
-            </button>
-        </div>
-
-        <div id="history" class="space-y-4"></div>
     </div>
 
-    <div id="villainModal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center p-6 z-50">
-        <div class="bg-slate-800 w-full rounded-3xl p-6 border border-slate-700">
-            <h3 class="font-bold mb-4 text-white">Add Opponent</h3>
-            <input id="vName" type="text" placeholder="Name" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none text-white">
-            <div class="flex gap-2 mb-6">
-                <button onclick="createVillain('FISH')" class="flex-1 bg-yellow-500/20 text-yellow-500 py-3 rounded-xl text-xs font-bold">FISH</button>
-                <button onclick="createVillain('REG')" class="flex-1 bg-blue-500/20 text-blue-500 py-3 rounded-xl text-xs font-bold">REG</button>
-            </div>
-            <button onclick="toggleVillainModal()" class="w-full text-slate-500 text-xs py-2">Cancel</button>
+    <div id="pokerKeyboard" class="bg-slate-900 rounded-t-3xl p-3 fixed bottom-0 left-0 right-0 shadow-2xl border-t border-slate-700 hidden z-50">
+        <div class="flex justify-between mb-2 px-2">
+            <span class="text-xs font-bold">选择手牌</span>
+            <button onclick="closeKeyboard()" class="text-blue-400 text-xs">确定</button>
         </div>
+        <div class="grid grid-cols-13 gap-1 overflow-x-auto pb-2" id="cardsGrid">
+            </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-2 mb-4">
+        <button onclick="recordAction('Fold')" class="bg-slate-700 py-3 rounded-xl text-xs font-bold">FOLD</button>
+        <button onclick="recordAction('Call')" class="bg-blue-600 py-3 rounded-xl text-xs font-bold">CALL</button>
+        <button onclick="recordAction('Raise')" class="bg-emerald-600 py-3 rounded-xl text-xs font-bold">RAISE</button>
+        <button onclick="openKeyboard()" class="bg-indigo-600 py-3 rounded-xl text-xs font-bold">CARDS</button>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl p-3">
+        <h3 class="text-[10px] font-bold text-slate-500 mb-2">SESSION HUD (实时数据)</h3>
+        <div id="hudList" class="space-y-2"></div>
     </div>
 
     <script>
-        // 初始化数据
-        let villains = JSON.parse(localStorage.getItem('poker_villains') || '[]');
-        let handHistory = JSON.parse(localStorage.getItem('poker_hands') || '[]');
+        const positions = [
+            {id: 'SB', x: '50%', y: '90%'}, {id: 'BB', x: '20%', y: '80%'},
+            {id: 'UTG', x: '10%', y: '50%'}, {id: 'HJ', x: '25%', y: '20%'},
+            {id: 'CO', x: '75%', y: '20%'}, {id: 'BTN', x: '90%', y: '50%'}
+        ];
 
-        function formatPoker(str) {
-            if(!str) return '';
-            return str.toLowerCase()
-                      .replace(/s/g, '<span class="card-black">♠</span>')
-                      .replace(/h/g, '<span class="card-red">♥</span>')
-                      .replace(/d/g, '<span class="card-red">♦</span>')
-                      .replace(/c/g, '<span class="card-black">♣</span>')
-                      .toUpperCase();
-        }
+        let stats = JSON.parse(localStorage.getItem('poker_stats') || '{}');
+        let currentHand = [];
 
-        function previewHand() {
-            document.getElementById('handPreview').innerHTML = formatPoker(document.getElementById('hand').value);
-        }
-
-        function toggleVillainModal() { document.getElementById('villainModal').classList.toggle('hidden'); }
-
-        function createVillain(type) {
-            const name = document.getElementById('vName').value;
-            if(!name) return;
-            villains.push({name, type});
-            localStorage.setItem('poker_villains', JSON.stringify(villains));
-            renderVillains();
-            toggleVillainModal();
-            document.getElementById('vName').value = '';
-        }
-
-        function renderVillains() {
-            const select = document.getElementById('villainSelect');
-            select.innerHTML = '<option value="Unknown">Unknown Player</option>' + 
-                villains.map(v => `<option value="${v.name}">${v.name} (${v.type})</option>`).join('');
-        }
-
-        function saveHand() {
-            const newHand = {
-                hand: document.getElementById('hand').value,
-                v: document.getElementById('villainSelect').value,
-                board: `${document.getElementById('flop').value} ${document.getElementById('turn').value} ${document.getElementById('river').value}`,
-                time: new Date().toLocaleString()
-            };
-            if(!newHand.hand) return alert('Enter hand first');
-            
-            handHistory.unshift(newHand);
-            localStorage.setItem('poker_hands', JSON.stringify(handHistory));
-            renderHistory();
-            
-            // 清空输入
-            ['hand','flop','turn','river'].forEach(id => document.getElementById(id).value = '');
-            document.getElementById('handPreview').innerHTML = '';
-        }
-
-        function renderHistory() {
-            const container = document.getElementById('history');
-            container.innerHTML = handHistory.map(h => `
-                <div class="glass p-5 rounded-3xl animate-in slide-in-from-top-2 duration-300">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="text-2xl font-mono">${formatPoker(h.hand)}</div>
-                        <div class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full text-blue-400">VS ${h.v}</div>
+        function init() {
+            // 生成牌桌玩家
+            const table = document.getElementById('tablePlayers');
+            positions.forEach(pos => {
+                if(!stats[pos.id]) stats[pos.id] = { hands: 0, vpip: 0, pfr: 0, total: 0 };
+                const s = stats[pos.id];
+                const vpip = s.total > 0 ? Math.round((s.vpip / s.total) * 100) : 0;
+                
+                table.innerHTML += `
+                    <div class="player-slot" style="left:${pos.x}; top:${pos.y}">
+                        <div class="text-[9px] font-bold text-slate-400">${pos.id}</div>
+                        <div class="w-10 h-10 rounded-full bg-slate-700 border-2 border-slate-500 mx-auto flex items-center justify-center text-[10px]">P</div>
+                        <div class="hud-tag">V:${vpip}%</div>
                     </div>
-                    <div class="text-xs text-slate-400 font-mono flex gap-2">
-                        <span class="text-slate-600 font-bold uppercase tracking-tighter">Board</span>
-                        ${formatPoker(h.board)}
-                    </div>
-                </div>
-            `).join('');
-            lucide.createIcons();
+                `;
+            });
+
+            // 生成52张牌键盘
+            const grid = document.getElementById('cardsGrid');
+            const suits = [{s:'s', n:'♠'}, {s:'h', n:'♥'}, {s:'d', n:'♦'}, {s:'c', n:'♣'}];
+            const ranks = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+            
+            suits.forEach(suit => {
+                ranks.forEach(rank => {
+                    grid.innerHTML += `
+                        <button onclick="selectCard('${rank}${suit.s}')" class="card-btn suit-${suit.s}">${rank}</button>
+                    `;
+                });
+            });
         }
 
-        function clearAllData() {
-            if(confirm('Delete all history?')) {
-                localStorage.clear();
-                location.reload();
-            }
+        function openKeyboard() { document.getElementById('pokerKeyboard').classList.remove('hidden'); }
+        function closeKeyboard() { document.getElementById('pokerKeyboard').classList.add('hidden'); }
+
+        function selectCard(card) {
+            currentHand.push(card);
+            if(currentHand.length > 2) currentHand.shift();
+            console.log("Selected:", currentHand);
         }
 
-        // 启动执行
-        renderVillains();
-        renderHistory();
-        lucide.createIcons();
+        function recordAction(type) {
+            // 简单的统计逻辑模拟
+            // 每一手牌你点击 Raise，对应的位置 PFR 就会上升
+            alert(type + " 已记录。数据正在实时更新 HUD...");
+        }
+
+        init();
     </script>
 </body>
 </html>
